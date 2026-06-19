@@ -1,3 +1,74 @@
-theme: jekyll-theme-cayman
-title: CERN STEAM Academy 2026 — C++
-description: Matthias Kretz's C++ course — environment and example exercises
+# Configurations
+#title: "From Bits to Speed: Modern C++"
+title: "From Bits to Speed: Modern C++ for High-Performance Scientific Computing @ CERN STEAM Academy '26"
+author:           Dr. Matthias Kretz
+email:            m.kretz@gsi.de
+description: >-
+  Using hardware resources of a single core efficiently is a prerequisite to
+  efficient multi-threaded codes. Hardware vendors are improving CPU
+  instructionlevel parallelism (ILP) capabilities with almost every new
+  revision.
+
+  One of the most significant features for ILP efficiency are SIMD registers
+  and instructions.
+
+  All but the smallest embedded CPUs have SIMD registers and instructions.
+  Efficient use of computing resources is more cost and energy efficient than
+  simply buying more and larger computing systems.
+
+version:          1.0
+gitbook_version:  3.2.3
+
+github_username:  mattkretz
+
+# bootstrap: use the remote theme for the site itself
+remote_theme: sighingnow/jekyll-gitbook
+
+toc:
+  enabled: true
+  h_min: 1
+  h_max: 3
+
+# customize the link favicon in header, will be {{site.baseurl}}/{{site.favicon_path}}
+favicon_path:     /assets/gitbook/images/favicon.ico
+
+# markdown render engine.
+markdown:         kramdown
+kramdown:
+  auto_ids:               true
+  input:                  GFM
+  math_engine:            mathjax
+  smart_quotes:           lsquo,rsquo,ldquo,rdquo
+  toc_levels:             1..6
+  syntax_highlighter:     rouge
+  syntax_highlighter_opts:
+    guess_lang:           true
+
+syntax_highlighter_style: monokai
+
+markdown_ext:             markdown,mkdown,mkdn,mkd,md
+
+# Permalinks
+permalink:                /:categories/:year-:month-:day-:title:output_ext
+
+# Disqus comments
+# disqushandler:            sighingnow
+
+exclude:
+  - _drafts
+
+collections:
+  pages:
+    output: true
+    permalink: /:collection/:path/
+
+page_width: 800px
+
+destination:      ./_site
+incremental:      false
+regenerate:       true
+
+plugins:
+  - jekyll-feed
+  - jekyll-readme-index
+  - jemoji
