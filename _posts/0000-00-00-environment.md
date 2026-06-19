@@ -24,9 +24,9 @@ layout: post
 > find_package(benchmark 1.9 REQUIRED)
 > ```
 >
-> In a terminal try 
+> In a terminal try
 > ```sh
-> cmake -S . -B build -G Ninja
+> cmake -B build -G Ninja
 > ```
 >
 > This fails, since it can't find the required benchmark library.
@@ -48,6 +48,14 @@ endif()
 > ```
 {:.block-task}
 
+> Turn on C++26 features
+>
+> ```cmake
+set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+> ```
+{:.block-task}
+
 > Run the above cmake command again.
 {:.block-task}
 
@@ -64,10 +72,24 @@ endif()
 > We only care about `CXX_FLAGS` variables.
 >
 > For now, change
-> - `CMAKE_BUILD_TYPE` to `RelWithDebInfo`
 > - `CMAKE_CXX_FLAGS_RELEASE` to `-O2 -DNDEBUG` and 
 > - `CMAKE_CXX_FLAGS_RELWITHDEBINFO` to `-Og -g -DNDEBUG -fhardened`.
 {:.block-task}
+
+> Why `-O2` rather than `-O3`
+>
+> I am very unhappy about the cmake default. Consider this quote from a GCC developer:
+> "`-O2` means 'optimise well'.
+> `-O3` means 'throw everything at it, it may be slower as well, but almost certainlly is way too big'"
+>
+> Defaulting to `-O3` is premature optimization, IMHO. Measure, and then decide whether `-O3` actually helps. Use it 
+only if it measurably improves your program.
+{:.block-tip}
+
+> Compiler flags
+>
+> Feel free to experiment with different compiler flags.
+{:.block-tip}
 
 > Verify with a dummy executable.
 >
@@ -95,10 +117,19 @@ target_link_libraries(test PRIVATE benchmark::benchmark)
 > ```
 {:.block-task}
 
-> Turn on C++26 features
+> Optional: Improve [LSP][3] support
 >
-> ```cmake
-set(CMAKE_CXX_STANDARD 26)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+> If you use `clangd` as an [LSP][3], add a `.clangd` file that points to GCC 16's libstdc++:
 > ```
-{:.block-task}
+> CompileFlags:
+>  Add:
+>    - --gcc-toolchain=/path/to/gcc-16
+> ```
+> And add `set(CMAKE_EXPORT_COMPILE_COMMANDS ON)` to `CMakeLists.txt`.
+>
+> That way CMake will generate `compile_commands.json` file, and `clangd` knows exactly how to compile your code as you go.
+>
+> (I use the `ale` plugin for `vim`.)
+{:.block-tip}
+
+[3]: https://en.wikipedia.org/wiki/Language_Server_Protocol
