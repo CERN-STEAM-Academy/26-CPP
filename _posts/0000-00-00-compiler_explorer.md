@@ -94,6 +94,33 @@ layout: post
 * Later we will also see instructions that use **p**acked instead of **s**calar 
   in their mnemonic. E.g. `addps` instead of `addss`. "packed" means SIMD.
 
+> Explore the topics we just covered
+>
+> - Play with integer quirks
+>   - promotion (how to see result types?)
+>   - common types
+>   - signed and unsigned overflow
+>   - `x + 1 > x`
+>   - arithmetic on `bool`
+> - `std::unreachable()`
+> - Look at assembly of by-value and by-reference `int` arguments
+> - When does the compiler emit `rsp` modification?
+> - Try infinite recursion: look for `rsp`
+> - Try out small examples with
+>   - `std::vector<T>` and
+>   - `std::array<T, N>`
+>   - Look at asm of copy and move
+>   - Try out different styles of iteration
+>
+{:.block-task}
+
+> tips
+>
+> - open compiler diagnostics output window
+> - consider using "Execute the code" under "Output..."
+> - Under "Add new..." there's a "Stack Usage" window
+{:.block-tip}
+
 
 [1]: https://compiler-explorer.com/
 [2]: assets/vir_inspect.sh
