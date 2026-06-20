@@ -64,25 +64,25 @@ fix it? (I gave up... maybe `std::execution::unseq` can do it?)
 
 > Explicitly vectorize with SIMD
 >
-> Use `stdx::native_simd<T>` to explicitly vectorize the Mandelbrot computation.
+> Use `simd::vec<T>` to explicitly vectorize the Mandelbrot computation.
 {:.block-task}
 
 > TIP
 >
-> [:green_book: vir::iota_v][6], [:green_book: vir::cvt][7],
-> [:green_book: mask reductions][8], [:green_book: where expressions][9]
+> - Create an iota object.
+> - `basic_mask` can be reduced to `bool` via `all_of`, `any_of`, and `none_of`
+> - `simd::select(basic_mask, basic_vec, basic_vec)`
 {:.block-tip}
 
 > Are your images not equal?
 >
 > Are your images not equal? Why? How can you make them equal? A discussion 
-about floating-point and equality follows...
+about floating-point and equality should follow on Friday.
 {:.block-warning}
 
 > Compare speed-ups
 >
-> Compare speed-ups. Does this match your expectations? Try wider `simd` (using 
-`stdx::fixed_size_simd`).
+> Compare speed-ups. Does this match your expectations? Try wider `simd` (using `simd::vec<T, N>`).
 {:.block-task}
 
 > Render a zoomed region
@@ -109,8 +109,9 @@ about floating-point and equality follows...
    * `mycomplex<T>` is a very trimmed-down implementation of complex numbers, 
    only providing the operations we need for this task. You can also use 
    `std::complex<float>`, but for me at least that makes the program slower. 
-   Also `std::complex<simd<float>>` is not really a thing, whereas 
-   `mycomplex<simd<float>>` works just fine.
+   Also `std::complex<simd::vec<float>>` is not really a thing, whereas 
+   `mycomplex<simd::vec<float>>` works just fine. (`simd::vec<std::complex<float>>` is part of C++26, but not in GCC 
+   16.)
 
 2. Ignore `tsc.h`. It provides the `time_stamp_counter` used in `main()`.
 
@@ -119,9 +120,8 @@ about floating-point and equality follows...
 
 4. `mandelbrot.h` is where the fun happens.
 
-   * The file already includes vir-simd headers and makes the `stdx` 
-   convenience namespace work. It then defines two `simd` specializations for 
-   `float` and `unsigned int`.
+   * The file already includes `<simd>`.
+   It then defines two `simd` specializations for `float` and `unsigned int`.
 
    * The `mandelbrot` function constructs an `Image` and iterates over all 
    pixels. For each pixel it determines the corresponding value for `c` and 
