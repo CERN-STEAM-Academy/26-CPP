@@ -167,6 +167,10 @@
     overflow-x: scroll;
 }
 
+.markdown-section blockquote {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
 /* Tips, warnings, and dangers */
 
 .markdown-section blockquote.block-task {
@@ -176,37 +180,37 @@
     font-family: var(--font-family);
 }
 
-.markdown-section blockquote.block-task p:first-child {
+.markdown-section blockquote.block-task > p:first-child {
     padding: 0.7ex 0 0.7ex 0;
     color: var(--c-task-title);
     font-weight: bold;
 }
 
-.markdown-section blockquote.block-task p:first-child::before {
+.markdown-section blockquote.block-task > p:first-child::before {
   content: "📝 ";
 }
 
-.markdown-section blockquote.block-task h1 {
+.markdown-section blockquote.block-task > h1 {
     color: var(--c-task-title);
 }
 
-.markdown-section blockquote.block-task h2 {
+.markdown-section blockquote.block-task > h2 {
     color: var(--c-task-title);
 }
 
-.markdown-section blockquote.block-task h3 {
+.markdown-section blockquote.block-task > h3 {
     color: var(--c-task-title);
 }
 
-.markdown-section blockquote.block-task h4 {
+.markdown-section blockquote.block-task > h4 {
     color: var(--c-task-title);
 }
 
-.markdown-section blockquote.block-task h5 {
+.markdown-section blockquote.block-task > h5 {
     color: var(--c-task-title);
 }
 
-.markdown-section blockquote.block-task h6 {
+.markdown-section blockquote.block-task > h6 {
     color: var(--c-task-title);
 }
 
@@ -217,37 +221,37 @@
     font-family: var(--font-family);
 }
 
-.markdown-section blockquote.block-tip p:first-child {
+.markdown-section blockquote.block-tip > p:first-child {
     color: var(--c-tip-title);
     font-weight: bold;
     padding: 0.7ex 0 0.7ex 0;
 }
 
-.markdown-section blockquote.block-tip p:first-child::before {
+.markdown-section blockquote.block-tip > p:first-child::before {
     content: "💡 ";
 }
 
-.markdown-section blockquote.block-tip h1 {
+.markdown-section blockquote.block-tip > h1 {
     color: var(--c-tip-title);
 }
 
-.markdown-section blockquote.block-tip h2 {
+.markdown-section blockquote.block-tip > h2 {
     color: var(--c-tip-title);
 }
 
-.markdown-section blockquote.block-tip h3 {
+.markdown-section blockquote.block-tip > h3 {
     color: var(--c-tip-title);
 }
 
-.markdown-section blockquote.block-tip h4 {
+.markdown-section blockquote.block-tip > h4 {
     color: var(--c-tip-title);
 }
 
-.markdown-section blockquote.block-tip h5 {
+.markdown-section blockquote.block-tip > h5 {
     color: var(--c-tip-title);
 }
 
-.markdown-section blockquote.block-tip h6 {
+.markdown-section blockquote.block-tip > h6 {
     color: var(--c-tip-title);
 }
 
@@ -258,37 +262,37 @@
     font-family: var(--font-family);
 }
 
-.markdown-section blockquote.block-warning p:first-child {
+.markdown-section blockquote.block-warning > p:first-child {
     color: var(--c-warning-title);
     font-weight: bold;
     padding: 0.7ex 0 0.7ex 0;
 }
 
-.markdown-section blockquote.block-warning p:first-child::before {
+.markdown-section blockquote.block-warning > p:first-child::before {
     content: "⚠️ ";
 }
 
-.markdown-section blockquote.block-warning h1 {
+.markdown-section blockquote.block-warning > h1 {
     color: var(--c-warning-title);
 }
 
-.markdown-section blockquote.block-warning h2 {
+.markdown-section blockquote.block-warning > h2 {
     color: var(--c-warning-title);
 }
 
-.markdown-section blockquote.block-warning h3 {
+.markdown-section blockquote.block-warning > h3 {
     color: var(--c-warning-title);
 }
 
-.markdown-section blockquote.block-warning h4 {
+.markdown-section blockquote.block-warning > h4 {
     color: var(--c-warning-title);
 }
 
-.markdown-section blockquote.block-warning h5 {
+.markdown-section blockquote.block-warning > h5 {
     color: var(--c-warning-title);
 }
 
-.markdown-section blockquote.block-warning h6 {
+.markdown-section blockquote.block-warning > h6 {
     color: var(--c-warning-title);
 }
 
@@ -299,27 +303,27 @@
     font-family: var(--font-family);
 }
 
-.markdown-section blockquote.block-danger h1 {
+.markdown-section blockquote.block-danger > h1 {
     color: var(--c-danger-title);
 }
 
-.markdown-section blockquote.block-danger h2 {
+.markdown-section blockquote.block-danger > h2 {
     color: var(--c-danger-title);
 }
 
-.markdown-section blockquote.block-danger h3 {
+.markdown-section blockquote.block-danger > h3 {
     color: var(--c-danger-title);
 }
 
-.markdown-section blockquote.block-danger h4 {
+.markdown-section blockquote.block-danger > h4 {
     color: var(--c-danger-title);
 }
 
-.markdown-section blockquote.block-danger h5 {
+.markdown-section blockquote.block-danger > h5 {
     color: var(--c-danger-title);
 }
 
-.markdown-section blockquote.block-danger h6 {
+.markdown-section blockquote.block-danger > h6 {
     color: var(--c-danger-title);
 }
 
@@ -338,7 +342,7 @@
     --c-tip-text: #215d42;
     --c-tip-title: #359469;
     --c-warning: #e7c000;
-    --c-warning-bg: rgba(255, 229, 100, .25);
+    --c-warning-bg: #fff8d8;
     --c-warning-text: #6b5900;
     --c-warning-title: #b29400;
     --c-danger: #c00;
