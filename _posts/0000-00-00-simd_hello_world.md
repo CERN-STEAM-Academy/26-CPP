@@ -7,25 +7,15 @@ layout: post
 
 > TIP
 >
-> You can do this exercise locally or on Compiler Explorer (unless you want to 
-use vir-simd).
+> You can do this exercise locally or on Compiler Explorer.
 {:.block-tip}
 
 Boilerplate:
 ```c++
-#include <experimental/simd>
-#include <iostream>
+#include <simd>
+#include <print>
 
-namespace stdx = std::experimental;
-
-template <class T, class A>
-std::ostream& operator<<(std::ostream& s, const stdx::simd<T, A>& v) {
-    s << '[' << v[0];
-    for (std::size_t i = 1; i < v.size(); ++i) {
-        s << ", " << v[i];
-    }
-    return s << ']';
-}
+namespace simd = std::simd;
 
 int main() {
     return 0;
@@ -34,18 +24,28 @@ int main() {
 
 > Test simd constructors
 >
-> Test the four different constructors:
-> * default
-> * broadcast
-> * generator
-> * load
+> - Test the four different constructors:
+>   * default
+>   * broadcast
+>   * generator
+>   * load (conversion from statically sized range)
+> - And test construction via `unchecked_load` and `partial_load`.
 >
 > ... using different element types: `double`, `char`, `unsigned`, ...
 >
 > Check what happens if you use a non-vectorizable type.
 >
-> Test different ABI tags (`simd<T>`, `native_simd<T>`, `fixed_size_simd<T, N>`, 
-`simd<T, simd_abi::scalar>`).
+> Test different number of elements.
+>
+> > Examples
+> >
+> > ```c++
+> > simd::vec<double> v = 1.; // broadcast
+> > simd::vec<int> iota([](int i) { return ...; }); // generator
+> > simd::vec str = "Hello World"; // CTAD + load constructor
+> > ```
+> > [C++ Working Draft: [simd.ctor]](https://eel.is/c++draft/simd#ctor)
+> {:.block-tip}
 {:.block-task}
 
 > Unaligned access
@@ -61,21 +61,21 @@ stares at the debugger, puzzled how the pointer can be out-of-bounds...
 
 > Implement abs(simd)
 >
-> Implement and test the absolute value function (not using `stdx::abs`):
+> Implement and test the absolute value function (not using `simd::abs`):
 > ```c++
-> template <class T, class A>
-> simd<T, A> abs(simd<T, A> x) {
+> template <typename T, typename A>
+> constexpr simd::basic_vec<T, A> abs(simd::basic_vecT, A> x) {
 >   // TODO
 > }
 > ```
 > Note that a correct `std::abs` implementation cares about `-0.`. Bonus points 
-if you have an idea...
+if you have an idea. 😉
 {:.block-task}
 
 > TIP
 >
-> * [:green_book: `where_expression`][9]
-> * [:green_book: bit operations on floating-point][10]
+> * `simd::select(basic_mask, basic_vec, basic_vec)`
+> * [`std::bit_cast`](https://en.cppreference.com/cpp/numeric/bit_cast)
 {:.block-tip}
 
 > Linear search
@@ -103,13 +103,11 @@ substring.
 
 > TIP
 >
-> * [:green_book: `stdx::popcount`][7]
-> * [:green_book: `stdx::find_first_set`][8]
+> - `simd::reduce_count(basic_mask)`
+> - `simd::reduce_min_index(basic_mask)`
 {:.block-tip}
 
 > Optional 1: simd_for_each
->
-> (A fully general solution of this exercise is part of vir-simd.)
 >
 > Write a `simd_for_each` algorithm that takes a range and a generic callable:
 > ```c++
@@ -129,45 +127,10 @@ substring.
 > * [:green_book: `std::ranges::contiguous_range`][2]
 > * [:green_book: `std::ranges::output_range`][3]
 > * [:green_book: `std::invocable`][4]
-> * [:green_book: `stdx::resize_simd_t`][5]
+> * [`simd::resize_t<N, V>`](https://eel.is/c++draft/simd.traits)
 {:.block-tip}
-
-> Optional 2: Generalize simd_for_each
->
-> Use [`vir::simdize`][6] to generalize your `simd_for_each` from *vectorizable* 
-range value types to "simdizable" range value types. I.e. make `simd` iteration 
-over array of struct/`std::tuple` easy to use.
->
-> This example should work:
-> ```c++
-> struct Point {
->   float x, y, z;
-> };
->
-> void normalize(std::vector<Point>& data) {
->   simd_for_each(data, [](auto& v) {
->       auto& [x, y, z] = v;
->       const auto scale = 1.f / sqrt(x * x + y * y + z * z);
->       x *= scale;
->       y *= scale;
->       z *= scale;
->   });
-> }
-> ```
-{:.block-task}
-
-> Bonus: Optimize memory access
->
-> Optimize loads and stores: from scalar access to vector access.
-{:.block-task}
 
 [1]: https://en.cppreference.com/w/cpp/ranges/iterator_t
 [2]: https://en.cppreference.com/w/cpp/ranges/contiguous_range
 [3]: https://en.cppreference.com/w/cpp/ranges/output_range
 [4]: https://en.cppreference.com/w/cpp/concepts/invocable
-[5]: https://en.cppreference.com/w/cpp/experimental/simd/rebind_simd
-[6]: https://github.com/mattkretz/vir-simd/#simdize-type-transformation
-[7]: https://en.cppreference.com/w/cpp/experimental/simd/popcount
-[8]: https://en.cppreference.com/w/cpp/experimental/simd/find_first_set
-[9]: https://en.cppreference.com/w/cpp/experimental/simd/where_expression
-[10]: https://github.com/mattkretz/vir-simd#bitwise-operators-for-floating-point-simd
