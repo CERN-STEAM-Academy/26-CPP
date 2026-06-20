@@ -7,7 +7,8 @@ layout: post
 
 Before you start optimizing code, you need to make sure your benchmark results are actually meaningful. On a modern 
 multi-core server or laptop, the operating system and hardware introduce so much noise that two consecutive runs of the 
-exact same binary can differ by 20–30%. This page explains the tools and settings that eliminate that noise.
+exact same binary can differ significantly. That just makes it hard to interpret and explain your results.
+This page explains the tools and settings that eliminate that noise.
 
 ## Why benchmarks are noisy
 
@@ -40,7 +41,7 @@ taskset -c 1 ./my_benchmark
 taskset -c 2,3 ./my_benchmark
 ```
 
-You can also use it as a prefix to any command:
+You can also chain it with e.g. `perf` with then calls your executable:
 
 ```bash
 taskset -c 1 perf stat ./my_benchmark
@@ -49,8 +50,9 @@ taskset -c 1 perf stat ./my_benchmark
 > Why this matters
 >
 > Without `taskset`, your benchmark process may land on a core sharing a last-level cache with a memory-intensive 
-background process, or may migrate mid-run, invalidating warm-cache assumptions. Pinning ensures every iteration sees 
-the same hardware topology.
+background process, or may migrate mid-run, invalidating warm-cache assumptions. Worse, on a system with performance and 
+power-efficient cores, it may migrate between them, making results completely unpredictable. Pinning ensures every 
+iteration sees the same hardware topology.
 {:.block-tip}
 
 ## `chrt` — change scheduling policy and priority
@@ -78,8 +80,8 @@ entire system and make it unresponsive. For short benchmarks, low RT priorities 
 
 ## `schedtool` — combine both in one command
 
-[`schedtool`](https://github.com/fthiessen/schedtool) wraps both `chrt` and `taskset` into a single invocation. This is 
-the tool used in the reference `CMakeLists.txt`:
+[`schedtool`](https://github.com/fthiessen/schedtool) wraps both `chrt` and `taskset` into a single invocation.
+This is the tool I recommend to add in your `CMakeLists.txt`.
 
 ```bash
 schedtool -F -p 10 -a 2 -e ./my_benchmark
@@ -115,7 +117,6 @@ Even with `schedtool`, if the CPU changes its clock frequency between iterations
 meaningless. You can [download my `benchmarking.sh` script][5].
 
 ```bash
-# Turn on benchmark mode
 ./benchmarking.sh on
 ```
 
@@ -129,19 +130,18 @@ This script performs three actions:
    - `echo 0 > /sys/devices/system/cpu/cpufreq/boost` (AMD)
 
 3. **Handles permissions** — If needed, uses `sudo` to grant group write access to the sysfs files, so subsequent 
-   invocations do not require root.
+   invocations do not require root. The provided laptops already have permissions set up as needed, so this is not 
+   needed there.
 
 To restore normal operation:
 
 ```bash
-# Turn off benchmark mode
 /home/mkretz/bin/benchmarking.sh off
 ```
 
 For convenience, there is an interactive mode:
 
 ```bash
-# Interactive: press Enter to toggle on/off
 /home/mkretz/bin/benchmarking.sh
 ```
 
@@ -195,12 +195,12 @@ chrt -f 10 taskset -c 2 perf ./my_benchmark
 
 > Verify each of these before trusting your numbers:
 >
-> - [ ] CPU governor is `performance` (check: `cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor`)
-> - [ ] Turbo boost is disabled (check: `cat /sys/devices/system/cpu/intel_pstate/no_turbo` → should be `1`)
-> - [ ] Process is pinned to a single performance core (`taskset -cp <pid>`)
-> - [ ] Process has RT scheduling (`SCHED_FIFO`)
-> - [ ] No heavy background workloads running (check `top`)
-> - [ ] Built in `Release` or `RelWithDebInfo` mode (not Debug!)
+> - CPU governor is `performance`
+> - Turbo boost is disabled
+> - Process is pinned to a single performance core
+> - Process uses real-time scheduling (`SCHED_FIFO`)
+> - No heavy background workloads running (check `top`)
+> - Built in `Release` or `RelWithDebInfo` mode (benchmarking `Debug` builds seldom makes sense)
 {:.block-tip}
 
 ## References
