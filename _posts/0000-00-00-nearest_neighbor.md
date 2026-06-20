@@ -12,12 +12,7 @@ layout: post
 
 > TIP
 >
-> Boilerplate for random number generation
-> ```c++
-> std::random_device rd;
-> std::mt19937 gen(rd());
-> std::uniform_real_distribution<float> rnd0_10(0.f, 10.f);
-> ```
+> Use `std::uniform_real_distribution<float>(0.f, 10.f)`.
 {:.block-tip}
 
 > Find nearest neighbor
@@ -29,10 +24,11 @@ return its index in the `vector`.
 > Vectorize
 >
 > Copy the code (or generalize via `template`) and work with 
-`stdx::native_simd<float>` instead.
+`simd::vec<float>` instead.
 >
-> 1. Use `simd(address, stdx::element_aligned)` to load from an array of `float`
-> 2. Use `std::vector<native_simd<float>>`
+> Two variants:
+> 1. Use `simd::unchecked_load(range)` to load from an array of `float`
+> 2. Use `std::vector<simd::vec<float>>`
 {:.block-task}
 
 > Which is better, if at all? When?
@@ -64,7 +60,6 @@ return its index in the `vector`.
 > 1. AoS
 > 2. SoA
 > 3. AoVS
-> 4. kd-tree (nothing for today, at least)
 {:.block-task}
 
 > Benchmark the results
