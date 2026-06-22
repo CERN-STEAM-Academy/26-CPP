@@ -5,6 +5,42 @@ date: 0000-01-02
 layout: post
 ---
 
+> Use GCC 16
+>
+> Since we're using some of the latest features of C++, we use the most recent (released) compiler.
+>
+> This should get you there:
+> ```sh
+> module load gcc/16
+> ```
+>
+> The default compiler (GCC) on the system comes from the distribution's package manager.
+> Likewise, the standard library (libstdc++) provided by the distribution matches that GCC version.
+> Note that GCC 16 automatically builds against the libstdc++ headers it ships.
+{:.block-task}
+
+> If you need to install GCC 16
+>
+> If you want to build it quicker add `--disable-bootstrap` to the GCC 
+> `configure` flags.
+>
+> ```sh
+> cd $src
+> git clone --depth 1 --single-branch --branch releases/gcc-16 \
+>  git://gcc.gnu.org/git/gcc
+>
+> cd gcc
+> ./contrib/download_prerequisites
+> mkdir build
+> cd build
+> ../configure --prefix=$prefix/gcc16 --enable-languages=c++ --disable-multilib
+> make -j $CMAKE_BUILD_PARALLEL_LEVEL
+> make install
+> export CC=$prefix/gcc16/bin/gcc
+> export CXX=$prefix/gcc16/bin/g++
+> ```
+{:.block-tip}
+
 > Set up git and cmake
 >
 > ```sh
@@ -12,7 +48,7 @@ layout: post
 > cd ~/src/exercises
 > git init
 > ```
-> 
+>
 > Open `CMakeLists.txt in your editor and add:
 > ```cmake
 > cmake_minimum_required(VERSION 3.30)
