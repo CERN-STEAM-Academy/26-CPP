@@ -21,7 +21,7 @@ layout: post
 
 > If you need to install GCC 16
 >
-> Maybe my gcc16 docker image works for you: https://github.com/mattkretz/cplusplus-ci/
+> Maybe my [gcc16 docker image works for you](https://github.com/mattkretz/cplusplus-ci/)
 >
 > If you want to build it quicker add `--disable-bootstrap` to the GCC 
 > `configure` flags.
