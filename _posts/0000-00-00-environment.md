@@ -18,6 +18,11 @@ layout: post
 > source /cvmfs/sft.cern.ch/lcg/contrib/gcc/16.1.0/x86_64-el9/setup.sh
 > ```
 >
+> To persist this setup for every login, add the file `.bashrc.d/gcc16` on lxplus with the same command as above:
+> ```sh
+> source /cvmfs/sft.cern.ch/lcg/contrib/gcc/16.1.0/x86_64-el9/setup.sh
+> ```
+>
 > The default compiler (GCC) on the system comes from the distribution's package manager.
 > Likewise, the standard library (libstdc++) provided by the distribution matches that GCC version.
 > Note that GCC 16 automatically builds against the libstdc++ headers it ships.
