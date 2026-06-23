@@ -13,6 +13,10 @@ layout: post
 > ```sh
 > module load gcc/16
 > ```
+> on `lxplus9.cern.ch`
+> ```sh
+> source /cvmfs/sft.cern.ch/lcg/contrib/gcc/16.1.0/x86_64-el9/setup.sh
+> ```
 >
 > The default compiler (GCC) on the system comes from the distribution's package manager.
 > Likewise, the standard library (libstdc++) provided by the distribution matches that GCC version.
