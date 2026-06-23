@@ -121,6 +121,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 > For now, change
 > - `CMAKE_CXX_FLAGS_RELEASE` to `-O2 -DNDEBUG` and 
 > - `CMAKE_CXX_FLAGS_RELWITHDEBINFO` to `-Og -g -DNDEBUG -fhardened`.
+>
+> Note that you still need to *configure* (press `c`) and *generate* (press `g`).
+>
+> Also, if this is the setup you want to persist between different build dirs (figure out what you really want, first, though), add these flags to the `CMakeLists.txt` rather than calling `ccmake` every time.
 {:.block-task}
 
 > Why `-O2` rather than `-O3`
