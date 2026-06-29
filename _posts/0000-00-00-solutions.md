@@ -8,51 +8,62 @@ layout: post
 ## Write a benchmark
 
 ```c++
-/* SPDX-License-Identifier: MIT-CMU */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
- */
-
 #include "benchmark.h"
-#include <vir/simd.h>
-#include <vir/simd_benchmarking.h>
+#include <simd>
 
-namespace stdx = vir::stdx;
+namespace simd = std::simd;
 
-template <class T>
-void demo(benchmark::State &state) {
-  constexpr int N = 8;
-  T x[N] = {};
-  for (int i = 0; i < N; ++i) {
-    vir::fake_modify(x[i]);
-  }
+template <int N>
+void peak(benchmark::State &state)
+{
+  simd::vec<float, N> x = {};
+  benchmark::DoNotOptimize(x);
   for (auto _ : state) {
-    for (int i = 0; i < N; ++i) {
-      vir::fake_read(x[i] = x[i] * 3 + 1);
-    }
+    x = x * 3.f + 1.f;
   }
-
-  add_flop_counters(state, element_count<T>::value * 2 * N);
+  benchmark::DoNotOptimize(x);
+  add_flop_counters(state, N * 2);
 }
 
-SIMD_BENCHMARK_TEMPLATE(demo, all_simds_of<float, IncludeBuiltin>);
-SIMD_BENCHMARK_TEMPLATE(demo, all_simds_of<double, IncludeBuiltin>);
+BENCHMARK(peak<1>);
+BENCHMARK(peak<2>);
+BENCHMARK(peak<4>);
+BENCHMARK(peak<8>);
+BENCHMARK(peak<16>);
+BENCHMARK(peak<32>);
+BENCHMARK(peak<48>);
+BENCHMARK(peak<64>);
+BENCHMARK(peak<80>);
+BENCHMARK(peak<96>);
+BENCHMARK(peak<112>);
+BENCHMARK(peak<128>);
 ```
 
 ### Output
 
 ```
-------------------------------------------------------------------------------------------------------------------------------
-Benchmark                                      Time             CPU   Iterations     CYCLES       FLOP FLOP/cycle INSTRUCTIONS
-------------------------------------------------------------------------------------------------------------------------------
-demo< float>                               0.926 ns        0.926 ns    734153434    4.00334 17.2864G/s    3.99667           10
-demo<simd< float, scalar>>                 0.924 ns        0.924 ns    754456773    4.00344 17.3208G/s    3.99656           10
-demo<simd< float, _VecBuiltin<16>>>        0.922 ns        0.922 ns    756727494    4.00358 69.3861G/s    15.9857           10
-demo<simd< float, _VecBltnBtmsk<64>>>       1.06 ns         1.06 ns    650765261    4.00717  241.28G/s    63.8854           10
-demo<double>                               0.923 ns        0.923 ns    756327792    4.00363 17.3408G/s    3.99637           10
-demo<simd<double, scalar>>                 0.925 ns        0.925 ns    757793812    4.00441  17.298G/s     3.9956           10
-demo<simd<double, _VecBuiltin<16>>>        0.923 ns        0.923 ns    756406038    4.00374 34.6606G/s    7.99253           10
-demo<simd<double, _VecBltnBtmsk<64>>>       1.05 ns         1.05 ns    662906258    4.00476 121.758G/s     31.962           10
+Run on (14 X 1700 MHz CPU s)
+CPU Caches:
+  L1 Data 48 KiB (x4)
+  L1 Instruction 64 KiB (x4)
+  L2 Unified 2048 KiB (x7)
+  L3 Unified 12288 KiB (x1)
+Load Average: 0.52, 1.10, 1.01
+---------------------------------------------------------------------------------------------------
+Benchmark           Time             CPU   Iterations     CYCLES       FLOP FLOP/cycle INSTRUCTIONS
+---------------------------------------------------------------------------------------------------
+peak<1>          2.71 ns         2.71 ns    295844456    4.45629 737.935M/s   0.448804            2
+peak<2>          3.76 ns         3.76 ns    185711643    6.36179  1.0638G/s   0.628754      4.00001
+peak<4>          2.86 ns         2.86 ns    295824655    4.72075 2.79428G/s    1.69465            2
+peak<8>          2.36 ns         2.36 ns    295923535    4.00152 6.76928G/s    3.99848            2
+peak<16>         2.48 ns         2.48 ns    294906860    4.06391 12.9242G/s     7.8742            4
+peak<32>         2.37 ns         2.37 ns    295845177    4.00366  26.982G/s    15.9854            6
+peak<48>         2.57 ns         2.57 ns    288923995    4.21806 37.3682G/s    22.7593            8
+peak<64>         2.59 ns         2.58 ns    270827526    4.37384 49.5366G/s    29.2649           10
+peak<80>         3.07 ns         3.07 ns    234843234    5.02873 52.1983G/s    31.8172           12
+peak<96>         3.56 ns         3.56 ns    196838009    6.01322 53.8902G/s    31.9296           14
+peak<112>        4.14 ns         4.14 ns    158952168    7.00724 54.1191G/s    31.9669           16
+peak<128>        5.94 ns         5.94 ns    115103753    10.0482 43.1273G/s    25.4773           24
 ```
 
 
