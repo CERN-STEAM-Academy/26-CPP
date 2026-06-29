@@ -135,70 +135,18 @@ consteval
 ## Benchmark: count spaces
 
 ```c++
-/* SPDX-License-Identifier: MIT-CMU */
-/* Copyright © 2023 GSI Helmholtzzentrum fuer Schwerionenforschung GmbH
- *                  Matthias Kretz <m.kretz@gsi.de>
- */
-
-#include <vir/simd.h>
-#include <vir/simd_benchmarking.h>
-#include <vir/simd_bitset.h>
-
-#include <algorithm>
-#include <iostream>
-#include <numeric>
-#include <ranges>
-#include <string_view>
-
+#include "simd_for_each.h"
 #include "benchmark.h"
 
-namespace stdx = vir::stdx;
+#include <algorithm>
+#include <functional>
+#include <numeric>
+#include <print>
+#include <simd>
+#include <span>
+#include <string_view>
 
-// Invokes fun(V&) or fun(const V&) with V copied from rg at offset i.
-// If write_back is true, copy it back to rg.
-template <typename V, bool write_back>
-[[gnu::always_inline]] constexpr
-void simd_invoke(auto&& fun, auto&& rg, std::size_t i) {
-    std::conditional_t<write_back, V, const V> chunk(std::ranges::data(rg) + i,
-                                                     stdx::element_aligned);
-    std::invoke(fun, chunk);
-    if constexpr (write_back) {
-        chunk.copy_to(std::ranges::data(rg) + i, stdx::element_aligned);
-    }
-}
-
-template <class V0, bool write_back>
-[[gnu::always_inline]] constexpr
-void simd_for_each_epilogue(auto&& fun, auto&& rg, std::size_t i) {
-    using V = stdx::resize_simd_t<V0::size() / 2, V0>;
-    if (i + V::size() <= std::ranges::size(rg)) {
-        simd_invoke<V, write_back>(fun, rg, i);
-        i += V::size();
-    }
-    if constexpr (V::size() > 1) {
-        simd_for_each_epilogue<V, write_back>(fun, rg, i);
-    }
-}
-
-template <std::ranges::contiguous_range R, typename F>
-[[gnu::always_inline]] constexpr
-void simd_for_each(R&& rg, F&& fun) {
-    using V = stdx::native_simd<std::ranges::range_value_t<R>>;
-    constexpr bool write_back =
-        std::ranges::output_range<R, typename V::value_type> and
-        std::invocable<F, V&> and not std::invocable<F, V&&>;
-    std::size_t i = 0;
-/*    for (; i + 4 * V::size() <= std::ranges::size(rg); i += 4 * V::size()) {
-        simd_invoke<V, write_back>(fun, rg, i);
-        simd_invoke<V, write_back>(fun, rg, i + V::size());
-        simd_invoke<V, write_back>(fun, rg, i + 2 * V::size());
-        simd_invoke<V, write_back>(fun, rg, i + 3 * V::size());
-    }*/
-    for (; i + V::size() <= std::ranges::size(rg); i += V::size()) {
-        simd_invoke<V, write_back>(fun, rg, i);
-    }
-    simd_for_each_epilogue<V, write_back>(fun, rg, i);
-}
+namespace simd = std::simd;
 
 std::array<std::string_view, 64> test_strings = {
     "Returns the number of elements in the range [first, last) satisfying specific "
@@ -411,129 +359,69 @@ static void add_string_rates(benchmark::State& state) {
                                           }));
 }
 
-template <typename V, typename Flags>
-[[gnu::always_inline]] constexpr
-int count_character(char c, const char* ptr, std::size_t len, Flags f)
+constexpr int count_character(std::string_view s, char c)
 {
-  const std::bitset<V::size()> bits((1ull << len) - 1);
-  const auto k = vir::to_simd_mask<char>(bits);
-  V chunk = {};
-  where(k, chunk).copy_from(ptr, f);
-  return popcount(chunk == c);
-}
-
-constexpr int count_character(std::string_view s, char c) {
-  using V = stdx::native_simd<char>;
+  using V = simd::vec<char>;
   int sum = 0;
-  simd_for_each(s, [&](auto chunk) { sum += popcount(chunk == c); });
+  simd_for_each(std::span(s), [&](auto chunk) { sum += simd::reduce_count(chunk == c); });
   return sum;
 }
 
-constexpr int count_character_opt(std::string_view s, char c) {
-  using V = stdx::native_simd<char>;
-  if (s.size() <= V::size()) {
-    return count_character<V>(c, s.data(), s.size(), stdx::element_aligned);
-  }
+constexpr int count_character_unlikely(std::string_view s, char c)
+{
+  using V = simd::vec<char>;
   int sum = 0;
-  std::size_t i = 0;
-  const std::size_t misaligned =
-      reinterpret_cast<std::uintptr_t>(s.data()) & (stdx::memory_alignment_v<V> - 1);
-  if (misaligned > 0) {
-    sum = count_character<V>(c, s.data(), V::size() - misaligned, stdx::element_aligned);
-    i = V::size() - misaligned;
-  }
-  for (; i + V::size() <= s.size(); i += V::size()) {
-    sum += popcount(V(s.data() + i, stdx::vector_aligned) == c);
-  }
-  sum += count_character<V>(c, s.data() + i, s.size() - i, stdx::vector_aligned);
-  return sum;
-}
-
-constexpr int count_character_opt2(std::string_view s, char c) {
-  using V = stdx::native_simd<char>;
-  int sum = 0;
-  std::size_t i = 0;
-  for (; i + V::size() <= s.size(); i += V::size()) {
-    sum += popcount(V(s.data() + i, stdx::element_aligned) == c);
-  }
-  sum += count_character<V>(c, s.data() + i, s.size() - i, stdx::element_aligned);
+  simd_for_each(std::span(s), [&](auto chunk) {
+    if (any_of(chunk == c)) [[unlikely]]
+      sum += simd::reduce_count(chunk == c);
+  });
   return sum;
 }
 
 void bench_ranges_count(benchmark::State &state) {
   for (auto _ : state) {
     for (auto s : test_strings) {
-      vir::fake_read(std::ranges::count(s, ' '));
+      benchmark::DoNotOptimize(std::ranges::count(s, ' '));
     }
   }
   add_string_rates(state);
 }
 
+template <auto fun>
 void bench_count_spaces_simd(benchmark::State &state) {
   for (auto _ : state) {
     for (auto s : test_strings) {
-      vir::fake_read(count_character(s, ' '));
+      benchmark::DoNotOptimize(fun(s, ' '));
     }
   }
   for (auto s : test_strings) {
-    if (std::ranges::count(s, ' ') != count_character(s, ' ')) {
-      std::cerr << "incorrect answer (size = " << s.size()
-                << ", addr = " << static_cast<const void*>(s.data()) << "):\n"
-                << s << "\n  ranges::count: " << std::ranges::count(s, ' ')
-                << " != " << count_character(s, ' ') << " :simd count\n";
-    }
-  }
-  add_string_rates(state);
-}
-
-void bench_count_spaces_simd_opt(benchmark::State &state) {
-  for (auto _ : state) {
-    for (auto s : test_strings) {
-      vir::fake_read(count_character_opt(s, ' '));
-    }
-  }
-  for (auto s : test_strings) {
-    if (std::ranges::count(s, ' ') != count_character_opt(s, ' ')) {
-      std::cerr << "incorrect answer (size = " << s.size()
-                << ", addr = " << static_cast<const void*>(s.data()) << "):\n"
-                << s << "\n  ranges::count: " << std::ranges::count(s, ' ')
-                << " != " << count_character_opt(s, ' ') << " :simd count\n";
-    }
-  }
-  add_string_rates(state);
-}
-
-void bench_count_spaces_simd_opt2(benchmark::State &state) {
-  for (auto _ : state) {
-    for (auto s : test_strings) {
-      vir::fake_read(count_character_opt2(s, ' '));
-    }
-  }
-  for (auto s : test_strings) {
-    if (std::ranges::count(s, ' ') != count_character_opt2(s, ' ')) {
-      std::cerr << "incorrect answer (size = " << s.size()
-                << ", addr = " << static_cast<const void*>(s.data()) << "):\n"
-                << s << "\n  ranges::count: " << std::ranges::count(s, ' ')
-                << " != " << count_character_opt(s, ' ') << " :simd count\n";
+    if (std::ranges::count(s, ' ') != fun(s, ' ')) {
+      std::println(
+          "incorrect answer (size = {}, addr = {}):\n{}\n  ranges::count: {} != {} :simd count",
+          s.size(), static_cast<const void*>(s.data()), s, std::ranges::count(s, ' '),
+          fun(s, ' '));
     }
   }
   add_string_rates(state);
 }
 
 BENCHMARK(bench_ranges_count);
-BENCHMARK(bench_count_spaces_simd);
-BENCHMARK(bench_count_spaces_simd_opt);
-BENCHMARK(bench_count_spaces_simd_opt2);
+BENCHMARK(bench_count_spaces_simd<count_character>);
+BENCHMARK(bench_count_spaces_simd<count_character_unlikely>);
 ```
 
 ### Output
 
 ```
------------------------------------------------------------------------------------------------------------------------------------------
-Benchmark                             Time             CPU   Iterations     CYCLES INSTRUCTIONS bytes_per_second cycles/string       rate
------------------------------------------------------------------------------------------------------------------------------------------
-bench_ranges_count                 2081 ns         2081 ns       337387   9.01987k       18.81k       5.71932G/s       140.935 30.7486M/s
-bench_count_spaces_simd             364 ns          364 ns      1916998   1.42147k       4.942k       32.6812G/s       22.2105 175.703M/s
-bench_count_spaces_simd_opt         270 ns          270 ns      2595573    1053.32       3.679k       44.0897G/s       16.4581 237.038M/s
-bench_count_spaces_simd_opt2        244 ns          244 ns      2857268        950       3.276k         48.86G/s       14.8438 262.685M/s
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+Benchmark                                                  Time             CPU   Iterations     CYCLES INSTRUCTIONS bytes_per_second cycles/string       rate
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+bench_ranges_count                                      1672 ns         1672 ns       391950   8.15663k       19.73k      7.12163Gi/s       127.447 38.2878M/s
+bench_count_spaces_simd<count_character>                 506 ns          505 ns      1363108   2.46689k      10.194k      23.5564Gi/s       38.5451 126.646M/s
+bench_count_spaces_simd<count_character_unlikely>        579 ns          578 ns      1224776   2.73587k      10.882k        20.59Gi/s        42.748 110.698M/s
 ```
+
+### Note
+
+Change the search for `' '` to e.g. `'z'` and the `[[unlikely]]` `any_of` branch makes a positive difference.
+This demonstrates how branch-less implementation and static branch prediction can depend on data rather than algorithm.
