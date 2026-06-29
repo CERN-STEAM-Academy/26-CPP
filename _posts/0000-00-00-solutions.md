@@ -72,41 +72,63 @@ peak<128>        5.94 ns         5.94 ns    115103753    10.0482 43.1273G/s    2
 ### `simd_for_each`
 
 ```c++
-// Invokes fun(V&) or fun(const V&) with V copied from rng at offset i.
-// If write_back is true, copy it back to rng.
-template <typename V, bool write_back>
-void simd_invoke(auto&& fun, auto&& rng, std::size_t i) {
-    std::conditional_t<write_back, V, const V> chunk(std::ranges::data(rng) + i,
-                                                     stdx::element_aligned);
-    std::invoke(fun, chunk);
-    if constexpr (write_back) {
-        chunk.copy_to(std::ranges::data(rng) + i, stdx::element_aligned);
-    }
+#include <functional>
+#include <simd>
+#include <span>
+
+namespace simd = std::simd;
+
+// Invokes fun(V&) or fun(const V&) with V copied from the beginning of rg.
+// If write_back is true, copy it back to rg.
+template <typename V, bool write_back, typename T>
+constexpr
+void simd_invoke(auto&& fun, std::span<T> rg)
+{
+  std::conditional_t<write_back, V, const V> chunk = simd::unchecked_load<V>(rg);
+  std::invoke(fun, chunk);
+  if constexpr (write_back) {
+    simd::unchecked_store(chunk, rg);
+  }
 }
 
-template <class V0, bool write_back>
-void simd_for_each_epilogue(auto&& fun, auto&& rng, std::size_t i) {
-    using V = stdx::resize_simd_t<V0::size() / 2, V0>;
-    if (i + V::size() <= std::ranges::size(rng)) {
-        simd_invoke<V, write_back>(fun, rng, i);
-        i += V::size();
-    }
-    if constexpr (V::size() > 1) {
-        simd_for_each_epilogue<V, write_back>(fun, rng, i);
-    }
+template <class V0, bool write_back, typename T>
+constexpr
+void simd_for_each_epilogue(auto&& fun, std::span<T> rg)
+{
+  using V = simd::resize_t<V0::size() / 2, V0>;
+  constexpr std::size_t vn = V::size();
+  if (vn <= rg.size()) {
+    simd_invoke<V, write_back>(fun, rg);
+    rg = rg.subspan(vn);
+  }
+  if constexpr (vn > 1) {
+    simd_for_each_epilogue<V, write_back>(fun, rg);
+  }
 }
 
-template <std::ranges::contiguous_range R, typename F>
-void simd_for_each(R&& rng, F&& fun) {
-    using V = stdx::native_simd<std::ranges::range_value_t<R>>;
-    constexpr bool write_back =
-        std::ranges::output_range<R, typename V::value_type> and
-        std::invocable<F, V&> and not std::invocable<F, V&&>;
-    std::size_t i = 0;
-    for (; i + V::size() <= std::ranges::size(rng); i += V::size()) {
-        simd_invoke<V, write_back>(fun, rng, i);
-    }
-    simd_for_each_epilogue<V, write_back>(fun, rng, i);
+template <typename T, std::size_t N, typename F>
+constexpr
+void simd_for_each(std::span<T, N> rg, F&& fun)
+{
+  using V = simd::vec<std::remove_const_t<T>>;
+  constexpr std::size_t vn = V::size();
+  constexpr bool write_back =
+      not std::is_const_v<T> and std::invocable<F, V&> and not std::invocable<F, V&&>;
+  std::size_t i = 0;
+  for (; i + vn <= rg.size(); i += vn) {
+    simd_invoke<V, write_back>(fun, rg.subspan(i));
+  }
+  simd_for_each_epilogue<V, write_back>(fun, rg.subspan(i));
+}
+
+// test
+consteval
+{
+  std::vector data = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  simd_for_each(std::span(data), [](auto &x) { x += x; });
+  for (int i = 0; i < int(data.size()); ++i)
+    if (data[i] != i + i)
+      throw i;
 }
 ```
 
@@ -132,50 +154,50 @@ void simd_for_each(R&& rng, F&& fun) {
 
 namespace stdx = vir::stdx;
 
-// Invokes fun(V&) or fun(const V&) with V copied from rng at offset i.
-// If write_back is true, copy it back to rng.
+// Invokes fun(V&) or fun(const V&) with V copied from rg at offset i.
+// If write_back is true, copy it back to rg.
 template <typename V, bool write_back>
 [[gnu::always_inline]] constexpr
-void simd_invoke(auto&& fun, auto&& rng, std::size_t i) {
-    std::conditional_t<write_back, V, const V> chunk(std::ranges::data(rng) + i,
+void simd_invoke(auto&& fun, auto&& rg, std::size_t i) {
+    std::conditional_t<write_back, V, const V> chunk(std::ranges::data(rg) + i,
                                                      stdx::element_aligned);
     std::invoke(fun, chunk);
     if constexpr (write_back) {
-        chunk.copy_to(std::ranges::data(rng) + i, stdx::element_aligned);
+        chunk.copy_to(std::ranges::data(rg) + i, stdx::element_aligned);
     }
 }
 
 template <class V0, bool write_back>
 [[gnu::always_inline]] constexpr
-void simd_for_each_epilogue(auto&& fun, auto&& rng, std::size_t i) {
+void simd_for_each_epilogue(auto&& fun, auto&& rg, std::size_t i) {
     using V = stdx::resize_simd_t<V0::size() / 2, V0>;
-    if (i + V::size() <= std::ranges::size(rng)) {
-        simd_invoke<V, write_back>(fun, rng, i);
+    if (i + V::size() <= std::ranges::size(rg)) {
+        simd_invoke<V, write_back>(fun, rg, i);
         i += V::size();
     }
     if constexpr (V::size() > 1) {
-        simd_for_each_epilogue<V, write_back>(fun, rng, i);
+        simd_for_each_epilogue<V, write_back>(fun, rg, i);
     }
 }
 
 template <std::ranges::contiguous_range R, typename F>
 [[gnu::always_inline]] constexpr
-void simd_for_each(R&& rng, F&& fun) {
+void simd_for_each(R&& rg, F&& fun) {
     using V = stdx::native_simd<std::ranges::range_value_t<R>>;
     constexpr bool write_back =
         std::ranges::output_range<R, typename V::value_type> and
         std::invocable<F, V&> and not std::invocable<F, V&&>;
     std::size_t i = 0;
-/*    for (; i + 4 * V::size() <= std::ranges::size(rng); i += 4 * V::size()) {
-        simd_invoke<V, write_back>(fun, rng, i);
-        simd_invoke<V, write_back>(fun, rng, i + V::size());
-        simd_invoke<V, write_back>(fun, rng, i + 2 * V::size());
-        simd_invoke<V, write_back>(fun, rng, i + 3 * V::size());
+/*    for (; i + 4 * V::size() <= std::ranges::size(rg); i += 4 * V::size()) {
+        simd_invoke<V, write_back>(fun, rg, i);
+        simd_invoke<V, write_back>(fun, rg, i + V::size());
+        simd_invoke<V, write_back>(fun, rg, i + 2 * V::size());
+        simd_invoke<V, write_back>(fun, rg, i + 3 * V::size());
     }*/
-    for (; i + V::size() <= std::ranges::size(rng); i += V::size()) {
-        simd_invoke<V, write_back>(fun, rng, i);
+    for (; i + V::size() <= std::ranges::size(rg); i += V::size()) {
+        simd_invoke<V, write_back>(fun, rg, i);
     }
-    simd_for_each_epilogue<V, write_back>(fun, rng, i);
+    simd_for_each_epilogue<V, write_back>(fun, rg, i);
 }
 
 std::array<std::string_view, 64> test_strings = {
