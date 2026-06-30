@@ -111,8 +111,7 @@ namespace simd = std::simd;
 // Invokes fun(V&) or fun(const V&) with V copied from the beginning of rg.
 // If write_back is true, copy it back to rg.
 template <typename V, bool write_back, typename T>
-constexpr
-void simd_invoke(auto&& fun, std::span<T> rg)
+constexpr void simd_invoke(auto&& fun, std::span<T> rg)
 {
   std::conditional_t<write_back, V, const V> chunk = simd::unchecked_load<V>(rg);
   std::invoke(fun, chunk);
@@ -122,8 +121,7 @@ void simd_invoke(auto&& fun, std::span<T> rg)
 }
 
 template <class V0, bool write_back, typename T>
-constexpr
-void simd_for_each_epilogue(auto&& fun, std::span<T> rg)
+constexpr void simd_for_each_epilogue(auto&& fun, std::span<T> rg)
 {
   using V = simd::resize_t<V0::size() / 2, V0>;
   constexpr std::size_t vn = V::size();
@@ -137,8 +135,7 @@ void simd_for_each_epilogue(auto&& fun, std::span<T> rg)
 }
 
 template <typename T, std::size_t N, typename F>
-constexpr
-void simd_for_each(std::span<T, N> rg, F&& fun)
+constexpr void simd_for_each(std::span<T, N> rg, F&& fun)
 {
   using V = simd::vec<std::remove_const_t<T>>;
   constexpr std::size_t vn = V::size();
@@ -374,19 +371,18 @@ std::array<std::string_view, 64> test_strings = {
     "Pointers to functions",
 };
 
-static void add_string_rates(benchmark::State& state) {
-  state.counters["rate"] = {test_strings.size(),
-                            benchmark::Counter::kIsIterationInvariantRate};
+static void add_string_rates(benchmark::State& state)
+{
+  state.counters["rate"] = {test_strings.size(), benchmark::Counter::kIsIterationInvariantRate};
   if (state.counters.contains("CYCLES")) {
     state.counters["cycles/string"] = {
         test_strings.size() / state.counters["CYCLES"],
         benchmark::Counter::kIsIterationInvariant | benchmark::Counter::kInvert};
   }
-  state.SetBytesProcessed(state.iterations() *
-                          std::accumulate(test_strings.begin(), test_strings.end(), 0uz,
-                                          [](std::size_t acc, std::string_view s) {
-                                            return acc + s.size();
-                                          }));
+  state.SetBytesProcessed(
+      state.iterations() *
+      std::accumulate(test_strings.begin(), test_strings.end(), 0uz,
+                      [](std::size_t acc, std::string_view s) { return acc + s.size(); }));
 }
 
 constexpr int count_character(std::string_view s, char c)
@@ -408,7 +404,8 @@ constexpr int count_character_unlikely(std::string_view s, char c)
   return sum;
 }
 
-void bench_ranges_count(benchmark::State &state) {
+void bench_ranges_count(benchmark::State& state)
+{
   for (auto _ : state) {
     for (auto s : test_strings) {
       benchmark::DoNotOptimize(std::ranges::count(s, ' '));
@@ -417,8 +414,8 @@ void bench_ranges_count(benchmark::State &state) {
   add_string_rates(state);
 }
 
-template <auto fun>
-void bench_count_spaces_simd(benchmark::State &state) {
+template <auto fun> void bench_count_spaces_simd(benchmark::State& state)
+{
   for (auto _ : state) {
     for (auto s : test_strings) {
       benchmark::DoNotOptimize(fun(s, ' '));
@@ -428,8 +425,7 @@ void bench_count_spaces_simd(benchmark::State &state) {
     if (std::ranges::count(s, ' ') != fun(s, ' ')) {
       std::println(
           "incorrect answer (size = {}, addr = {}):\n{}\n  ranges::count: {} != {} :simd count",
-          s.size(), static_cast<const void*>(s.data()), s, std::ranges::count(s, ' '),
-          fun(s, ' '));
+          s.size(), static_cast<const void*>(s.data()), s, std::ranges::count(s, ' '), fun(s, ' '));
     }
   }
   add_string_rates(state);
