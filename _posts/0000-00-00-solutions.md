@@ -69,6 +69,36 @@ peak<128>        5.94 ns         5.94 ns    115103753    10.0482 43.1273G/s    2
 
 ## Hello SIMD World
 
+### Test simd constructors
+
+You can copy the following to Compiler Explorer and adjust for different types:
+
+```c++
+#include <simd>
+#include <span>
+
+namespace simd = std::simd;
+
+auto default_ctor() { return simd::vec<int>(); }
+
+auto broadcast_ctor() { return simd::vec<int>(2); }
+
+auto generator_ctor()
+{
+  return simd::vec<int>([](int i) { return i ^ 1; });
+}
+
+auto load_ctor() { return simd::basic_vec("Hello World"); }
+
+auto load1(std::span<const float> data) { return simd::unchecked_load(data); }
+
+auto load2(std::span<const float> data) { return simd::unchecked_load(data, simd::flag_aligned); }
+
+auto load3(std::span<const float> data) { return simd::partial_load(data); }
+
+auto load4(std::span<const float> data) { return simd::partial_load(data, simd::flag_aligned); }
+```
+
 ### `simd_for_each`
 
 ```c++
